@@ -12,16 +12,20 @@
 
 ## 自用规则列表
 
+> 不带 `-ip` 的规则集只含域名规则，`-ip` 后缀的只含 IP 规则。上游源中混合的 IP 规则会自动分离到对应的 `-ip` 规则集。
+
 | 规则集 | 说明 | 源数 |
 |--------|------|:----:|
 | `ai` | AI 服务 (OpenAI/Claude/Gemini 等) | 4 |
 | `apple-domain` | Apple 服务域名 | 2 |
-| `apple-ip` | Apple 服务 IP | 1 |
+| `apple-ip` | Apple 服务 IP | 1+ |
 | `google-domain` | Google 服务域名 | 2 |
-| `google-ip` | Google 服务 IP | 1 |
+| `google-ip` | Google 服务 IP | 1+ |
 | `google-cn` | Google 国内可直连 | 1 |
-| `youtube` | YouTube | 2 |
-| `twitter` | Twitter / X | 2 |
+| `youtube` | YouTube 域名 | 2 |
+| `youtube-ip` | YouTube IP (自动分离) | — |
+| `twitter` | Twitter / X 域名 | 2 |
+| `twitter-ip` | Twitter / X IP (自动分离) | — |
 | `telegram` | Telegram 域名 | 1 |
 | `telegram-ip` | Telegram IP | 1 |
 | `tiktok` | TikTok | 3 |
@@ -33,8 +37,11 @@
 | `steam-cn` | Steam 国区 | 2 |
 | `pixiv` | Pixiv | 1 |
 | `ehentai` | E-Hentai | 1 |
-| `emby` | Emby 媒体服务 | 1 |
-| `proxy` | 代理兜底 (geolocation-!cn) | 4 |
+| `emby` | Emby 媒体服务域名 | 1 |
+| `emby-ip` | Emby IP (自动分离) | — |
+| `proxy` | 代理兜底域名 (geolocation-!cn) | 4 |
+| `proxy-ip` | 代理兜底 IP (自动分离) | — |
+| `pcdn` | PCDN 屏蔽 (斗鱼/B站/爱奇艺等) | 自定义 |
 | `geosite-cn` | 中国域名直连 | 2 |
 | `geoip-cn` | 中国 IP 直连 | 2 |
 

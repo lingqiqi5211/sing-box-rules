@@ -92,17 +92,25 @@ convert_dnsmasq() {
 # 用法: convert_v2ray_list < input > output
 convert_v2ray_list() {
     clean_list | \
-    awk '{
-        if ($0 ~ /^full:/) {
-            sub(/^full:/, "", $0)
-            print "DOMAIN," $0
-        } else if ($0 ~ /^regexp:/) {
-            sub(/^regexp:/, "", $0)
-            print "DOMAIN-REGEX," $0
-        } else {
-            print "DOMAIN-SUFFIX," $0
-        }
-    }'
+    python3 -c '
+import sys, re
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    if line.startswith("full:"):
+        print("DOMAIN," + line[5:])
+    elif line.startswith("regexp:"):
+        pattern = line[7:]
+        try:
+            re.compile(pattern)
+            print("DOMAIN-REGEX," + pattern)
+        except re.error:
+            print(f"[WARN] 跳过无效正则: {pattern}", file=sys.stderr)
+    else:
+        print("DOMAIN-SUFFIX," + line)
+'
 }
 
 # 转换 hosts 格式 (jmdugan blocklists 等)
@@ -348,16 +356,21 @@ for line in sys.stdin:
     elif rule_type == "DOMAIN-KEYWORD":
         rules["domain_keyword"].append(value)
     elif rule_type in ("DOMAIN-REGEX", "DOMAIN-WILDCARD"):
+        import re
         # DOMAIN-WILDCARD 转换为正则
         if rule_type == "DOMAIN-WILDCARD":
             # *.example.com -> (\.|^)example\.com$
-            import re
             pattern = value.replace(".", r"\.")
             pattern = pattern.replace(r"\*\.", r"(\.|^)")
             pattern = pattern.replace("*", ".*")
-            rules["domain_regex"].append(pattern)
         else:
-            rules["domain_regex"].append(value)
+            pattern = value
+        # 校验正则语法
+        try:
+            re.compile(pattern)
+            rules["domain_regex"].append(pattern)
+        except re.error:
+            print(f"[WARN] 跳过无效正则: {pattern}", file=sys.stderr)
     elif rule_type in ("IP-CIDR", "IP-CIDR6"):
         rules["ip_cidr"].append(value)
     elif rule_type == "PROCESS-NAME":

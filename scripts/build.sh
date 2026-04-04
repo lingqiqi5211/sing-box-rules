@@ -327,7 +327,71 @@ merge_rules() {
         fi
     done < "$SOURCES_CONF"
 
-    # 逐个规则合并
+    # 扫描 custom/add/ 中的自定义规则集 (可能没有上游源)
+    local custom_add_dir="$PROJECT_DIR/custom/add"
+    if [[ -d "$custom_add_dir" ]]; then
+        for custom_file in "$custom_add_dir"/*.list; do
+            [[ ! -f "$custom_file" ]] && continue
+            local cname
+            cname="$(basename "$custom_file" .list)"
+            local found=0
+            for existing in "${rule_names[@]:-}"; do
+                if [[ "$existing" == "$cname" ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [[ $found -eq 0 ]]; then
+                rule_names+=("$cname")
+            fi
+        done
+    fi
+
+    # IP 暂存目录 (非 -ip 规则集中分离出的 IP 规则)
+    local ip_staging_dir="$TMP_DIR/ip_staging"
+    mkdir -p "$ip_staging_dir"
+
+    # ---------------------------------------------------------------
+    # 辅助函数: 确定 IP 规则的目标规则集名称
+    #   apple-domain -> apple-ip
+    #   google-domain -> google-ip
+    #   其他 -> {name}-ip
+    # ---------------------------------------------------------------
+    _get_ip_target_name() {
+        local name="$1"
+        if [[ "$name" == *-domain ]]; then
+            echo "${name%-domain}-ip"
+        else
+            echo "${name}-ip"
+        fi
+    }
+
+    # ---------------------------------------------------------------
+    # 辅助函数: 输出一个规则集的所有文件 (meta .list, singbox .json, 拆分 domain/ipcidr)
+    # ---------------------------------------------------------------
+    _output_ruleset() {
+        local rname="$1"
+        local src_file="$2"
+
+        # --- 输出 meta .list ---
+        cp "$src_file" "$META_OUT/${rname}.list"
+
+        # --- 拆分 domain / ipcidr (用于 mihomo .mrs) ---
+        split_domain_ipcidr "$src_file" \
+            "$META_DOMAIN_OUT/${rname}.list" \
+            "$META_IPCIDR_OUT/${rname}.list"
+
+        # 清理空文件
+        [[ ! -s "$META_DOMAIN_OUT/${rname}.list" ]] && rm -f "$META_DOMAIN_OUT/${rname}.list"
+        [[ ! -s "$META_IPCIDR_OUT/${rname}.list" ]] && rm -f "$META_IPCIDR_OUT/${rname}.list"
+
+        # --- 输出 sing-box JSON ---
+        to_singbox_json < "$src_file" > "$SINGBOX_OUT/${rname}.json"
+    }
+
+    # ---------------------------------------------------------------
+    # 第一轮: 合并各规则集，同时将非 -ip 规则集中的 IP 规则分离暂存
+    # ---------------------------------------------------------------
     for rule_name in "${rule_names[@]}"; do
         log_info "处理规则集: $rule_name"
 
@@ -352,29 +416,82 @@ merge_rules() {
         apply_custom "$rule_name" < "$merged_file" > "$processed_file"
 
         # 去重和排序
+        local deduped_file="$TMP_DIR/${rule_name}.deduped"
+        dedup_lines < "$processed_file" | domain_dedupe | ruleset_sort > "$deduped_file"
+
+        # ----- IP 自动分离 -----
+        # 以 -ip 结尾或以 geoip- 开头的规则集: 只保留 IP 规则
+        # 其他规则集: 只保留域名规则，IP 规则自动分离到 {name}-ip
         local final_file="$TMP_DIR/${rule_name}.final"
-        dedup_lines < "$processed_file" | domain_dedupe | ruleset_sort > "$final_file"
+        if [[ "$rule_name" == *-ip ]] || [[ "$rule_name" == geoip-* ]]; then
+            # -ip 规则集: 只保留 IP 规则，丢弃域名规则
+            grep -E '^(IP-CIDR|IP-CIDR6),' "$deduped_file" > "$final_file" 2>/dev/null || true
+            local dropped
+            dropped=$(grep -cE '^(DOMAIN|DOMAIN-SUFFIX|DOMAIN-KEYWORD|DOMAIN-WILDCARD|DOMAIN-REGEX),' "$deduped_file" 2>/dev/null || true)
+            [[ "$dropped" -gt 0 ]] 2>/dev/null && log_info "  $rule_name: 丢弃了 $dropped 条域名规则 (仅保留 IP)"
+        else
+            # 非 -ip 规则集: 只保留域名规则，IP 规则分离暂存
+            grep -E '^(DOMAIN|DOMAIN-SUFFIX|DOMAIN-KEYWORD|DOMAIN-WILDCARD|DOMAIN-REGEX),' "$deduped_file" > "$final_file" 2>/dev/null || true
+
+            local ip_tmp="$TMP_DIR/${rule_name}.ip_split"
+            grep -E '^(IP-CIDR|IP-CIDR6),' "$deduped_file" > "$ip_tmp" 2>/dev/null || true
+
+            if [[ -s "$ip_tmp" ]]; then
+                local ip_target
+                ip_target="$(_get_ip_target_name "$rule_name")"
+                local ip_count
+                ip_count=$(wc -l < "$ip_tmp" | tr -d ' ')
+                log_info "  $rule_name: 分离 $ip_count 条 IP 规则 -> $ip_target"
+
+                # 追加到暂存文件
+                cat "$ip_tmp" >> "$ip_staging_dir/${ip_target}.staged"
+            fi
+            rm -f "$ip_tmp"
+        fi
 
         local line_count
         line_count=$(wc -l < "$final_file" | tr -d ' ')
         log_info "  最终规则数: $line_count"
 
-        # --- 输出 meta .list ---
-        cp "$final_file" "$META_OUT/${rule_name}.list"
-
-        # --- 拆分 domain / ipcidr ---
-        split_domain_ipcidr "$final_file" \
-            "$META_DOMAIN_OUT/${rule_name}.list" \
-            "$META_IPCIDR_OUT/${rule_name}.list"
-
-        # 清理空文件
-        [[ ! -s "$META_DOMAIN_OUT/${rule_name}.list" ]] && rm -f "$META_DOMAIN_OUT/${rule_name}.list"
-        [[ ! -s "$META_IPCIDR_OUT/${rule_name}.list" ]] && rm -f "$META_IPCIDR_OUT/${rule_name}.list"
-
-        # --- 输出 sing-box JSON ---
-        to_singbox_json < "$final_file" > "$SINGBOX_OUT/${rule_name}.json"
+        _output_ruleset "$rule_name" "$final_file"
     done
 
+    # ---------------------------------------------------------------
+    # 第二轮: 将暂存的 IP 规则合并到对应的 -ip 规则集
+    # ---------------------------------------------------------------
+    for staged_file in "$ip_staging_dir"/*.staged; do
+        [[ ! -f "$staged_file" ]] && continue
+        local ip_name
+        ip_name="$(basename "$staged_file" .staged)"
+
+        local staged_count
+        staged_count=$(wc -l < "$staged_file" | tr -d ' ')
+        log_info "合并暂存 IP 规则到 $ip_name ($staged_count 条)"
+
+        if [[ -f "$META_OUT/${ip_name}.list" ]]; then
+            # 已有 -ip 规则集，追加并重新去重
+            local combined="$TMP_DIR/${ip_name}.combined"
+            cat "$META_OUT/${ip_name}.list" "$staged_file" | dedup_lines | ruleset_sort > "$combined"
+
+            local new_count
+            new_count=$(wc -l < "$combined" | tr -d ' ')
+            log_info "  $ip_name: 合并后 $new_count 条规则"
+
+            _output_ruleset "$ip_name" "$combined"
+        else
+            # 新的 -ip 规则集 (上游没有定义，纯靠分离产生)
+            local new_ip_file="$TMP_DIR/${ip_name}.final"
+            dedup_lines < "$staged_file" | ruleset_sort > "$new_ip_file"
+
+            local new_count
+            new_count=$(wc -l < "$new_ip_file" | tr -d ' ')
+            log_info "  新增规则集 $ip_name ($new_count 条规则)"
+
+            _output_ruleset "$ip_name" "$new_ip_file"
+        fi
+    done
+
+    rm -rf "$ip_staging_dir"
     log_info "所有规则合并完成"
 }
 
