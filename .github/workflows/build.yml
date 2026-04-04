@@ -1,0 +1,92 @@
+name: Build Rule Sets
+
+on:
+  schedule:
+    # 北京时间每天 06:30 (UTC 22:30)
+    - cron: '30 22 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'custom/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl git
+
+      - name: Run build script
+        run: |
+          chmod +x scripts/build.sh scripts/utils.sh
+          bash scripts/build.sh
+
+      - name: Deploy to ruleset branch
+        run: |
+          # 配置 git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 准备 ruleset 分支
+          cd output
+
+          git init
+          git checkout -b ruleset
+
+          # 添加所有输出文件
+          git add -A
+
+          # 生成 commit message
+          TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          SINGBOX_COUNT=$(ls singbox/*.srs 2>/dev/null | wc -l)
+          META_COUNT=$(ls meta/*.list 2>/dev/null | wc -l)
+          git commit -m "auto-update: ${TIMESTAMP} | singbox: ${SINGBOX_COUNT} rules, meta: ${META_COUNT} rules"
+
+          # 推送到 ruleset 分支 (force push)
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -f origin ruleset
+
+      - name: Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### sing-box rules (.srs)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh output/singbox/*.srs 2>/dev/null | awk '{print $NF, $5}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### mihomo rules (.list)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh output/meta/*.list 2>/dev/null | awk '{print $NF, $5}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ -f output/stats.md ]]; then
+            cat output/stats.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Cleanup old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 3
+          keep_minimum_runs: 3

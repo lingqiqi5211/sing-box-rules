@@ -1,0 +1,7 @@
+# custom/add/
+# 在此目录放置需要额外追加的规则文件
+# 文件名需与对应规则集名称一致，例如: ai.list, google-domain.list
+# 格式为 Surge classical 格式:
+#   DOMAIN,example.com
+#   DOMAIN-SUFFIX,example.com
+#   IP-CIDR,1.2.3.0/24,no-resolve

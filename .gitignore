@@ -1,0 +1,21 @@
+# Build output
+dist/
+output/
+tmp/
+
+# Downloaded upstream rules
+upstream/
+
+# Compiled binaries
+sing-box
+sing-box.exe
+mihomo
+mihomo.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
