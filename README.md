@@ -1,12 +1,12 @@
 # sing-box-rules
 
-自用 sing-box / mihomo 代理规则集，多源合并、自动去重、每日构建。
+自用 sing-box / mihomo 代理规则集，多源合并、自动去重、每日构建，本项目使用 Claude Opus 4.6 完成。
 
 ## 特性
 
 - **多源合并** - 每个规则集合并 2-5 个上游源，减少分流遗漏
 - **智能去重** - 子域名被 suffix 覆盖时自动移除冗余条目
-- **双格式输出** - sing-box (`.json` + `.srs` v3) 和 mihomo (`.list` + `.mrs`)
+- **双格式输出** - sing-box (`.json` + `.srs` v1.12.0+) 和 mihomo (`.list` + `.mrs`)
 - **每日构建** - GitHub Actions 每日 06:30 (UTC+8) 自动更新
 - **自定义规则** - 支持通过 `custom/add/` 和 `custom/remove/` 追加或排除条目
 
@@ -41,7 +41,6 @@
 | `emby-ip` | Emby IP (自动分离) | — |
 | `proxy` | 代理兜底域名 (geolocation-!cn) | 4 |
 | `proxy-ip` | 代理兜底 IP (自动分离) | — |
-| `pcdn` | PCDN 屏蔽 (斗鱼/B站/爱奇艺等) | 自定义 |
 | `geosite-cn` | 中国域名直连 | 2 |
 | `geoip-cn` | 中国 IP 直连 | 2 |
 
