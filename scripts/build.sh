@@ -172,7 +172,7 @@ download_upstream() {
         [[ -z "$rule_name" ]] && continue
 
         case "$source_type" in
-            curl-surge|curl-sukka|curl-clash|curl-v2ray|curl-dnsmasq|curl-hosts|curl-iplist|curl-singbox-json)
+            curl-surge|curl-sukka|curl-clash|curl-v2ray|curl-domain-list|curl-dnsmasq|curl-hosts|curl-iplist|curl-singbox-json)
                 local filename="${rule_name}__$(echo "$source_type" | sed 's/curl-//')__$(echo "$url" | md5sum | cut -c1-8)"
                 local outfile="$curl_dir/${filename}"
                 if [[ ! -f "$outfile" ]]; then
@@ -265,6 +265,13 @@ get_source_content() {
             local file="$UPSTREAM_DIR/curl/${filename}"
             if [[ -f "$file" ]]; then
                 convert_v2ray_list < "$file"
+            fi
+            ;;
+        curl-domain-list)
+            local filename="${rule_name}__domain-list__$(echo "$source_ref" | md5sum | cut -c1-8)"
+            local file="$UPSTREAM_DIR/curl/${filename}"
+            if [[ -f "$file" ]]; then
+                convert_domain_list < "$file"
             fi
             ;;
         curl-dnsmasq)

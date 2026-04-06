@@ -87,30 +87,46 @@ convert_dnsmasq() {
     awk -F'/' '{print "DOMAIN-SUFFIX," $2}'
 }
 
-# 转换 Loyalsoldier v2ray proxy-list 格式
-# 输入: full:domain 或 regexp:pattern 或 bare-domain (作为 suffix)
-# 用法: convert_v2ray_list < input > output
-convert_v2ray_list() {
+# 转换 domain-list / domain-list-custom / v2ray proxy-list 格式
+# 支持: full:, domain:, keyword:, regexp:, bare-domain
+# 忽略: include: 和行尾属性 (如 @cn)
+# 用法: convert_domain_list < input > output
+convert_domain_list() {
     clean_list | \
     python3 -c '
 import sys, re
 
 for line in sys.stdin:
     line = line.strip()
-    if not line:
+    if not line or line.startswith("#"):
         continue
-    if line.startswith("full:"):
-        print("DOMAIN," + line[5:])
-    elif line.startswith("regexp:"):
-        pattern = line[7:]
+
+    token = line.split()[0]
+    if token.startswith("include:"):
+        continue
+    if token.startswith("full:"):
+        print("DOMAIN," + token[5:])
+    elif token.startswith("domain:"):
+        print("DOMAIN-SUFFIX," + token[7:])
+    elif token.startswith("keyword:"):
+        print("DOMAIN-KEYWORD," + token[8:])
+    elif token.startswith("regexp:"):
+        pattern = token[7:]
         try:
             re.compile(pattern)
             print("DOMAIN-REGEX," + pattern)
         except re.error:
             print(f"[WARN] 跳过无效正则: {pattern}", file=sys.stderr)
     else:
-        print("DOMAIN-SUFFIX," + line)
+        print("DOMAIN-SUFFIX," + token)
 '
+}
+
+# 转换 Loyalsoldier v2ray proxy-list 格式
+# 输入: full:domain 或 regexp:pattern 或 bare-domain (作为 suffix)
+# 用法: convert_v2ray_list < input > output
+convert_v2ray_list() {
+    convert_domain_list
 }
 
 # 转换 hosts 格式 (jmdugan blocklists 等)

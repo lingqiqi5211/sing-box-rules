@@ -1,10 +1,11 @@
 # sing-box-rules
 
-自用 sing-box / mihomo 代理规则集，多源合并、自动去重、每日构建，本项目使用 Claude Opus 4.6 完成。
+自用 sing-box / mihomo 代理规则集，多源合并、自动去重、每日构建。
 
 ## 特性
 
-- **多源合并** - 每个规则集合并 2-5 个上游源，减少分流遗漏
+- **Meta 主基底** - 以 `MetaCubeX/meta-rules-dat` 的 `geo/full` 为主基底，其他上游仅做补充
+- **多源合并** - 每个规则集合并 1-4 个上游源，减少分流遗漏
 - **智能去重** - 子域名被 suffix 覆盖时自动移除冗余条目
 - **双格式输出** - sing-box (`.json` + `.srs` v1.12.0+) 和 mihomo (`.list` + `.mrs`)
 - **每日构建** - GitHub Actions 每日 06:30 (UTC+8) 自动更新
@@ -21,7 +22,7 @@
 | `apple-ip` | Apple 服务 IP | 1+ |
 | `google-domain` | Google 服务域名 | 2 |
 | `google-ip` | Google 服务 IP | 1+ |
-| `google-cn` | Google 国内可直连 | 1 |
+| `google-cn` | Google 国内可直连 | 2 |
 | `youtube` | YouTube 域名 | 2 |
 | `youtube-ip` | YouTube IP (自动分离) | — |
 | `twitter` | Twitter / X 域名 | 2 |
@@ -31,12 +32,12 @@
 | `tiktok` | TikTok | 3 |
 | `github` | GitHub | 2 |
 | `microsoft` | Microsoft 服务 | 2 |
-| `onedrive` | OneDrive | 2 |
+| `onedrive` | OneDrive | 3 |
 | `bahamut` | 巴哈姆特动画疯 | 2 |
 | `steam` | Steam 国际 | 2 |
 | `steam-cn` | Steam 国区 | 2 |
 | `pixiv` | Pixiv | 1 |
-| `ehentai` | E-Hentai | 1 |
+| `ehentai` | E-Hentai | 2 |
 | `emby` | Emby 媒体服务域名 | 1 |
 | `emby-ip` | Emby IP (自动分离) | — |
 | `proxy` | 代理兜底域名 (geolocation-!cn) | 4 |
@@ -91,13 +92,15 @@ bash scripts/build.sh
 
 | 项目 | 用途 |
 |------|------|
-| [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) | 主力规则源 |
-| [blackmatrix7/ios_rule_script](https://github.com/blackmatrix7/ios_rule_script) | 第二规则源 |
+| [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) | 主基底规则源 |
+| [blackmatrix7/ios_rule_script](https://github.com/blackmatrix7/ios_rule_script) | 服务类规则补充 |
 | [ConnersHua/RuleGo](https://github.com/ConnersHua/RuleGo) | AI 规则补充 |
 | [SukkaW/Surge](https://github.com/SukkaW/Surge) | AI + Proxy 补充 |
 | [ACL4SSR/ACL4SSR](https://github.com/ACL4SSR/ACL4SSR) | AI 规则补充 |
-| [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat) | Proxy 兜底补充 |
-| [felixonmars/dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list) | 中国域名 |
+| [Loyalsoldier/domain-list-custom](https://github.com/Loyalsoldier/domain-list-custom) | Proxy 域名补充 |
+| [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) | EHentai 域名补充 |
+| [felixonmars/dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list) | 中国域名 / Google CN 补充 |
+| [xishang0128/rules](https://github.com/xishang0128/rules) | SharePoint / OneDrive 补充 |
 | [NobyDa/geoip](https://github.com/NobyDa/geoip) | 中国 IP |
 | [jmdugan/blocklists](https://github.com/jmdugan/blocklists) | TikTok 补充 |
 | [Repcz/Tool](https://github.com/Repcz/Tool) | Emby 规则 |
