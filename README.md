@@ -18,11 +18,11 @@
 | 规则集 | 说明 | 源数 |
 |--------|------|:----:|
 | `ai` | AI 服务 (OpenAI/Claude/Gemini 等) | 4 |
+| `ad-rules` | 广告拦截域名合集 | 1 |
 | `apple-domain` | Apple 服务域名 | 2 |
 | `apple-ip` | Apple 服务 IP | 1+ |
 | `google-domain` | Google 服务域名 | 2 |
 | `google-ip` | Google 服务 IP | 1+ |
-| `google-cn` | Google 国内可直连 | 2 |
 | `youtube` | YouTube 域名 | 2 |
 | `youtube-ip` | YouTube IP (自动分离) | — |
 | `twitter` | Twitter / X 域名 | 2 |
@@ -97,9 +97,10 @@ bash scripts/build.sh
 | [ConnersHua/RuleGo](https://github.com/ConnersHua/RuleGo) | AI 规则补充 |
 | [SukkaW/Surge](https://github.com/SukkaW/Surge) | AI + Proxy 补充 |
 | [ACL4SSR/ACL4SSR](https://github.com/ACL4SSR/ACL4SSR) | AI 规则补充 |
+| [TG-Twilight/AWAvenue-Ads-Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) | 广告拦截规则 |
 | [Loyalsoldier/domain-list-custom](https://github.com/Loyalsoldier/domain-list-custom) | Proxy 域名补充 |
 | [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) | EHentai 域名补充 |
-| [felixonmars/dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list) | 中国域名 / Google CN 补充 |
+| [felixonmars/dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list) | 中国域名补充 |
 | [xishang0128/rules](https://github.com/xishang0128/rules) | SharePoint / OneDrive 补充 |
 | [NobyDa/geoip](https://github.com/NobyDa/geoip) | 中国 IP |
 | [jmdugan/blocklists](https://github.com/jmdugan/blocklists) | TikTok 补充 |

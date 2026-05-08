@@ -172,7 +172,7 @@ download_upstream() {
         [[ -z "$rule_name" ]] && continue
 
         case "$source_type" in
-            curl-surge|curl-sukka|curl-clash|curl-v2ray|curl-domain-list|curl-dnsmasq|curl-hosts|curl-iplist|curl-singbox-json)
+            curl-surge|curl-sukka|curl-clash|curl-v2ray|curl-domain-list|curl-dnsmasq|curl-hosts|curl-iplist|curl-singbox-json|curl-adblock)
                 local filename="${rule_name}__$(echo "$source_type" | sed 's/curl-//')__$(echo "$url" | md5sum | cut -c1-8)"
                 local outfile="$curl_dir/${filename}"
                 if [[ ! -f "$outfile" ]]; then
@@ -300,6 +300,13 @@ get_source_content() {
             local file="$UPSTREAM_DIR/curl/${filename}"
             if [[ -f "$file" ]]; then
                 convert_singbox_json < "$file"
+            fi
+            ;;
+        curl-adblock)
+            local filename="${rule_name}__adblock__$(echo "$source_ref" | md5sum | cut -c1-8)"
+            local file="$UPSTREAM_DIR/curl/${filename}"
+            if [[ -f "$file" ]]; then
+                convert_adblock < "$file"
             fi
             ;;
         *)

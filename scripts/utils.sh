@@ -147,6 +147,49 @@ convert_hosts() {
     }'
 }
 
+# 转换 Adblock 域名规则格式 (AWAvenue Ads Rule 等)
+# 支持: ||example.com^ 和 *-ads.example.com* 这类域名/通配模式
+# 忽略: 注释、白名单规则、元素隐藏规则、带路径的 URL 规则
+# 用法: convert_adblock < input > output
+convert_adblock() {
+    python3 -c '
+import re, sys
+
+for raw in sys.stdin:
+    line = raw.replace("\ufeff", "").strip().replace("\r", "")
+    if not line:
+        continue
+    if line.startswith(("!", "#", "[", "@@")):
+        continue
+    if "##" in line or "#@#" in line or "#?#" in line:
+        continue
+
+    token = line.split("$", 1)[0].strip()
+    if not token:
+        continue
+
+    if token.startswith("||"):
+        token = token[2:]
+    elif token.startswith("|"):
+        token = token[1:]
+
+    token = token.rstrip("^|")
+
+    if "/" in token or ":" in token or "?" in token:
+        continue
+
+    if not token:
+        continue
+
+    if "*" in token:
+        if re.fullmatch(r"[A-Za-z0-9.*_-]+", token) and "." in token.replace("*", ""):
+            print("DOMAIN-WILDCARD," + token)
+    else:
+        if re.fullmatch(r"[A-Za-z0-9._-]+", token) and "." in token:
+            print("DOMAIN-SUFFIX," + token)
+'
+}
+
 # 转换纯 IP/CIDR 列表格式 (NobyDa/geoip 等)
 # 输入: 每行一个 IP 或 CIDR
 # 用法: convert_iplist < input > output
